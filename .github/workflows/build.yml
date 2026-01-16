@@ -18,6 +18,10 @@ jobs:
         sudo apt update
         sudo apt install -y bc bison build-essential ccache curl flex git \
         libssl-dev libncurses5-dev libncursesw5-dev python3 unzip zip
+        # 确保有 python 命令（有些脚本默认调用 python 而不是 python3）
+        if ! command -v python >/dev/null 2>&1; then
+          sudo ln -sf /usr/bin/python3 /usr/bin/python
+        fi
 
     - name: Download AOSP Clang
       run: |
@@ -31,7 +35,7 @@ jobs:
         export PATH=~/clang/bin:$PATH
         cd kali-nethunter-kernel-builder
         chmod +x build.sh
-        ./build.sh
+        ./build.sh -n
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
