@@ -1,0 +1,49 @@
+name: Build Wethunter Kernel (A15 - fajita)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Checkout kernel source
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y bc bison build-essential ccache curl flex git \
+        libssl-dev libncurses5-dev libncursesw5-dev python3 unzip zip
+
+    - name: Download AOSP Clang
+      run: |
+        mkdir -p ~/clang
+        cd ~/clang
+        curl -LO https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/master/clang-r522817.tar.gz
+        tar -xzf clang-r522817.tar.gz
+
+    - name: Build kernel
+      env:
+        ARCH: arm64
+        SUBARCH: arm64
+      run: |
+        export PATH=~/clang/bin:$PATH
+        make O=out ARCH=arm64 vendor/fajita_defconfig
+        make -j$(nproc) O=out ARCH=arm64 CC=clang
+
+    - name: Package with AnyKernel3
+      run: |
+        git clone https://github.com/osm0sis/AnyKernel3.git
+        cp out/arch/arm64/boot/Image.gz-dtb AnyKernel3/
+        cd AnyKernel3
+        zip -r9 ../Wethunter-Kernel-A15-fajita.zip *
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: Wethunter-Kernel-A15-fajita
+        path: Wethunter-Kernel-A15-fajita.zip
